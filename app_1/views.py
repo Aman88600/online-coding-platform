@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Coders
+from .models import Coders, Problems
 from django.contrib import messages
 # Create your views here.
 def index(request):
@@ -59,4 +59,13 @@ def dashboard(request):
         return redirect('index')
     username = request.session.get('username', 'Guset') # if no username found then Guest is provided
     request.session.get('password', '123')
-    return render(request, 'app_1/dashboard.html', {'username':username})
+
+    problems = Problems.objects.all()
+    p_names = []
+    for i in problems:
+        p_names.append(i.problem_name)
+    return render(request, 'app_1/dashboard.html', {'username':username, 'problems':p_names})
+
+
+def problems(request, problem_name):
+    return render(request, 'app_1/problem_name.html', {'problem_name' : problem_name})

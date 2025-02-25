@@ -78,17 +78,28 @@
 </head>
 <body>
 
-<div class="container">
-    <h1>Welcome, {{ username }}</h1>
+    <div class="container">
+        <h1>Welcome, {{ username }}</h1>
 
-    <div class="form-container">
-        <!-- Exit Button Form -->
-        <form action="{% url 'dashboard' %}" method="post">
-            {% csrf_token %}
-            <button type="submit">Exit</button>
-        </form>
+        {% for problem in problems %}
+        
+        
+        <div class="form-container">
+            <!-- Exit Button Form -->
+            <form action="{% url 'problems' problem %}" method="post">
+                {% csrf_token %}
+                <button type="submit">{{ problem }}</button>
+            </form>
+        </div>
+        {% endfor %}
+        <div class="form-container">
+            <!-- Exit Button Form -->
+            <form action="{% url 'dashboard' %}" method="post">
+                {% csrf_token %}
+                <button type="submit">Exit</button>
+            </form>
+        </div>
     </div>
-</div>
 
 </body>
 </html>
