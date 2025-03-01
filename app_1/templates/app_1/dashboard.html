@@ -85,7 +85,6 @@
         
         
         <div class="form-container">
-            <!-- Exit Button Form -->
             <form action="{% url 'problems' problem %}" method="post">
                 {% csrf_token %}
                 <button type="submit">{{ problem }}</button>
