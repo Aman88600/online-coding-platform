@@ -28,6 +28,8 @@ class Problems(models.Model):
     # Optional: Solution or hints for the problem (You can leave it empty or add later)
     solution = models.TextField(blank=True, null=True, default="No solution provided yet.")  # Default solution if not provided
 
+    test_cases = models.JSONField(default=list)
+
     def __str__(self):
         return f"Problem: {self.problem_name}"
 

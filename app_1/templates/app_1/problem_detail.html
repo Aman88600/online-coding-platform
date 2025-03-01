@@ -20,10 +20,25 @@
         .form-container {
             margin-top: 30px;
         }
-        h1 {
-            color: #333;
+        .CodeMirror {
+            border: 1px solid #ccc;
+            font-size: 14px;
+            height: auto;
+        }
+        #output {
+            background-color: #eaeaea;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
         }
     </style>
+
+    <!-- Include CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/mode/clike/clike.min.js"></script>
 </head>
 <body>
     <h1>{{ problem.problem_name }} Problem</h1>
@@ -45,12 +60,95 @@
         </pre>
     </div>
 
+    <!-- Code Submission Form -->
     <div class="form-container">
-        <!-- Exit Button Form -->
-        <form action="{% url 'dashboard' %}" method="get">
+        <form action="" method="">
             {% csrf_token %}
+
+            <!-- Language Selection -->
+            <label for="language">Select Language:</label>
+            <select id="language">
+                <option value="python">Python</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+            </select>
+
+            <br><br>
+
+            <label for="code">Write Your Code Here:</label>
+            <textarea id="code" name="code"></textarea>
+            <br>
+            
+            <button type="button" onclick="runCode()">Run Code</button>
+            <button type="submit">Submit Code</button>
+        </form>
+    </div>
+
+    <!-- Output Section -->
+    <div class="form-container">
+        <h3>Output:</h3>
+        <pre id="output"></pre>
+    </div>
+
+    <!-- Exit Button -->
+    <div class="form-container">
+        <form action="{% url 'dashboard' %}" method="get">
             <button type="submit">Exit</button>
         </form>
     </div>
+
+    <script>
+        // Define language modes for CodeMirror
+        const languageModes = {
+            python: "python",
+            c: "text/x-csrc",
+            cpp: "text/x-c++src"
+        };
+
+        // Initialize CodeMirror editor
+        var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: languageModes.python, // Default to Python
+            lineNumbers: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            theme: "default"
+        });
+
+        // Change CodeMirror mode when language is selected
+        document.getElementById("language").addEventListener("change", function() {
+            var selectedLang = this.value;
+            editor.setOption("mode", languageModes[selectedLang]);
+        });
+
+        // Function to run code
+        function runCode() {
+            var code = editor.getValue();
+            var language = document.getElementById("language").value;
+
+            fetch("{% url 'run_code' problem.problem_name %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "code": code, "language": language })
+            })
+            .then(response => response.json())
+            .then(data => {
+                var outputDiv = document.getElementById("output");
+                outputDiv.innerHTML = "";
+
+                if (data.results) {
+                    data.results.forEach((result, index) => {
+                        outputDiv.innerHTML += `Test ${index + 1}: ${result.pass ? "✅ Passed" : "❌ Failed"}<br>`;
+                        outputDiv.innerHTML += `Input: ${result.input}<br>`;
+                        outputDiv.innerHTML += `Expected: ${result.expected}<br>`;
+                        outputDiv.innerHTML += `Your Output: ${result.actual}<br><br>`;
+                        outputDiv.innerHTML += `Your Code: ${result.code}<br><br>`;
+                    });
+                } else {
+                    outputDiv.innerHTML = data.error || "No output.";
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
 </body>
 </html>
