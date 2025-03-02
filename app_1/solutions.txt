@@ -1,0 +1,43 @@
+import sys
+import re
+
+# Read all input from stdin
+input_data = sys.stdin.read().strip().split("\n")
+
+# Extract numbers list
+nums = list(map(int, re.findall(r"-?\d+", input_data[0])))
+
+# Extract target value
+target = int(input_data[1])
+
+def two_sum(nums, target):
+    """ Returns indices of the two numbers that add up to the target. """
+    num_map = {}
+    
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in num_map:
+            return num_map[complement], i
+        num_map[num] = i
+    
+    return "No solution found"
+
+def main(nums, target):
+    result = two_sum(nums, target)
+    
+    if isinstance(result, tuple):
+        print(result[0], result[1])
+    else:
+        print(result)
+
+main(nums, target)
+
+
+i = 0
+    while i < len(nums):
+        j = i + 1
+        while j < len(nums):
+            if (nums[i] + nums[j] == target):
+                return [i, j]
+            j += 1
+        i += 1

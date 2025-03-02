@@ -41,56 +41,81 @@ def run_code(request, problem_name):
         if not code:
             return JsonResponse({"error": "No code provided!"}, status=400)
 
-        problem = Problems.objects.get(problem_name=problem_name)
-        test_cases = problem.test_cases  # Retrieve stored test cases
+        try:
+            # Fetch the problem from the database
+            problem = Problems.objects.get(problem_name=problem_name)
 
+            # Check if test_cases is already a list
+            if isinstance(problem.test_cases, str):
+                # If it's a string, parse it as JSON
+                test_cases = json.loads(problem.test_cases)
+            else:
+                # If it's already a list, use it directly
+                test_cases = problem.test_cases
+
+        except Problems.DoesNotExist:
+            return JsonResponse({"error": "Problem not found!"}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid test cases format!"}, status=500)
+
+        # Define file extensions and execution commands
         file_ext = {"python": ".py", "c": ".c", "cpp": ".cpp"}
         PYTHON_EXECUTABLE = "C:\\Users\\hp\\AppData\\Local\\Programs\\Python\\Python312\\python.exe"
-
+        
         run_cmd = {
             "python": f"{PYTHON_EXECUTABLE} {{file}}",
-            "c": "./{exe}",
-            "cpp": "./{exe}"
+            "c": "gcc {file} -o {exe} && {exe}",
+            "cpp": "g++ {file} -o {exe} && {exe}"
         }
-
+        
         results = []
         with tempfile.TemporaryDirectory() as temp_dir:
             file_path = os.path.join(temp_dir, "solution" + file_ext[language])
-
-            # ✅ Fix: Use UTF-8 encoding to prevent Unicode errors
+            
+            # Write the code to a temporary file
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
+            # Handle compilation for C/C++
+            if language in ["c", "cpp"]:
+                exe_path = os.path.join(temp_dir, "a.exe" if language == "c" else "a.out")
+                command = run_cmd[language].format(file=file_path, exe=exe_path)
+            else:
+                command = run_cmd[language].format(file=file_path)
+            print(test_cases)
+            # Run the code against each test case
             for case in test_cases:
                 raw_input = case["input"]
                 expected_output = case["expected"]
-
-                # 🔹 **Handle Linked List Problems**
-                if "l1" in raw_input and "l2" in raw_input:
-                    l1_str = " ".join(map(str, raw_input["l1"]))
-                    l2_str = " ".join(map(str, raw_input["l2"]))
-                    formatted_input = f"{l1_str}\n{l2_str}\n"
-                    expected_output_str = " ".join(map(str, expected_output))
+                print(f"raw_input = {raw_input}")
+                # Format the input
+                if isinstance(raw_input, dict):
+                    formatted_input = "\n".join(map(str, raw_input.values())) + "\n"
                 else:
-                    formatted_input = format_input(raw_input)
-                    expected_output_str = format_output(expected_output)
+                    formatted_input = str(raw_input) + "\n"
+                print(f"Formatted = {formatted_input}")
+                # Format the expected output
+                expected_output_str = " ".join(map(str, expected_output))
 
-                # Run the user's code with properly formatted input
+                # Execute the code
                 process = subprocess.run(
-                    run_cmd[language].format(file=file_path),
+                    command,
                     input=formatted_input, text=True, shell=True, capture_output=True, timeout=5, encoding="utf-8"
                 )
-
-                actual_output = process.stdout.strip().replace(",", " ")  # Normalize output formatting
-
+                
+                # Format the actual output
+                actual_output = process.stdout.strip().replace(",", " ")
+                print(actual_output)
+                # Append the result
                 results.append({
                     "input": formatted_input.strip(),
                     "expected": expected_output_str,
                     "actual": actual_output,
                     "pass": actual_output == expected_output_str,
-                    "code": code
+                    "code": code,
+                    "stderr": process.stderr.strip() if process.stderr else ""
                 })
-
+        
         return JsonResponse({"results": results})
 
 def format_input(raw_input):

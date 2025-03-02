@@ -32,6 +32,22 @@
             white-space: pre-wrap;
             font-family: monospace;
         }
+
+        /* Spinner Animation */
+        .spinner {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid rgba(0, 0, 255, 0.3);
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 
     <!-- Include CodeMirror -->
@@ -53,11 +69,6 @@
             Output: <code>{{ problem.example_output }}</code><br>
             <strong>Explanation:</strong> {{ problem.example_explanation }}
         </p>
-
-        <h3>Function Signature:</h3>
-        <pre>
-{{ problem.function_signature }}
-        </pre>
     </div>
 
     <!-- Code Submission Form -->
@@ -76,13 +87,17 @@
             <br><br>
 
             <label for="code">Write Your Code Here:</label>
-            <textarea id="code" name="code"></textarea>
+            <!-- Pre-fill the textarea with the function_signature -->
+            <textarea id="code" name="code">{{ problem.function_signature }}</textarea>
             <br>
-            
+
             <button type="button" onclick="runCode()">Run Code</button>
             <button type="submit">Submit Code</button>
         </form>
     </div>
+
+    <!-- Loading Spinner -->
+    <div id="spinner" class="spinner"></div>
 
     <!-- Output Section -->
     <div class="form-container">
@@ -124,6 +139,12 @@
         function runCode() {
             var code = editor.getValue();
             var language = document.getElementById("language").value;
+            var spinner = document.getElementById("spinner");
+            var outputDiv = document.getElementById("output");
+
+            // Show spinner and clear output
+            spinner.style.display = "block";
+            outputDiv.innerHTML = "";
 
             fetch("{% url 'run_code' problem.problem_name %}", {
                 method: "POST",
@@ -132,7 +153,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                var outputDiv = document.getElementById("output");
+                // Hide spinner when execution is done
+                spinner.style.display = "none";
+
                 outputDiv.innerHTML = "";
 
                 if (data.results) {
@@ -147,7 +170,11 @@
                     outputDiv.innerHTML = data.error || "No output.";
                 }
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => {
+                console.error("Error:", error);
+                spinner.style.display = "none"; // Hide spinner on error
+                outputDiv.innerHTML = "⚠️ Error running code!";
+            });
         }
     </script>
 </body>
